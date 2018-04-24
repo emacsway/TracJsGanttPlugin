@@ -7,6 +7,8 @@
 # you should have received as part of this distribution.
 
 import copy
+import datetime
+import operator
 from pkg_resources import resource_filename
 
 
@@ -245,31 +247,32 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
             linkStyle = options['linkStyle']
         else:
             linkStyle = 'standard'
-        opt += self.GanttID+'.setLinkStyle("%s")\n' % linkStyle
-        opt += self.GanttID+'.setShowRes(%s);\n' % options['res']
-        opt += self.GanttID+'.setShowDur(%s);\n' % options['dur']
-        opt += self.GanttID+'.setShowComp(%s);\n' % options['comp']
+        opt += self.GanttID + '.setLinkStyle("%s")\n' % linkStyle
+        opt += self.GanttID + '.setShowRes(%s);\n' % options['res']
+        opt += self.GanttID + '.setShowDur(%s);\n' % options['dur']
+        opt += self.GanttID + '.setShowComp(%s);\n' % options['comp']
         if (options['scrollTo']):
-            opt += self.GanttID+'.setScrollDate("%s");\n' % options['scrollTo']
+            opt += self.GanttID + '.setScrollDate("%s");\n' \
+                % options['scrollTo']
         w = options['lwidth']
         if w:
-            opt += self.GanttID+'.setLeftWidth(%s);\n' % w
+            opt += self.GanttID + '.setLeftWidth(%s);\n' % w
 
-        opt += self.GanttID+'.setCaptionType("%s");\n' % \
+        opt += self.GanttID + '.setCaptionType("%s");\n' % \
             javascript_quote(options['caption'])
 
-        opt += self.GanttID+'.setShowStartDate(%s);\n' % options['startDate']
-        opt += self.GanttID+'.setShowEndDate(%s);\n' % options['endDate']
+        opt += self.GanttID + '.setShowStartDate(%s);\n' % options['startDate']
+        opt += self.GanttID + '.setShowEndDate(%s);\n' % options['endDate']
 
-        opt += self.GanttID+'.setDateInputFormat("%s");\n' % \
+        opt += self.GanttID + '.setDateInputFormat("%s");\n' % \
             javascript_quote(self.jsDateFormat)
 
-        opt += self.GanttID+'.setDateDisplayFormat("%s");\n' % \
+        opt += self.GanttID + '.setDateDisplayFormat("%s");\n' % \
             javascript_quote(options['dateDisplay'])
 
-        opt += self.GanttID+'.setFormatArr(%s);\n' % ','.join(
-            '"%s"' % javascript_quote(f) for f in options['formats'].split('|'))
-        opt += self.GanttID+'.setPopupFeatures("location=1,scrollbars=1");\n'
+        opt += self.GanttID + '.setFormatArr(%s);\n' % ','.join('"%s"' %
+            javascript_quote(f) for f in options['formats'].split('|'))
+        opt += self.GanttID + '.setPopupFeatures("location=1,scrollbars=1");\n'
         return opt
 
     # TODO - use ticket-classN styles instead of colors?
@@ -323,7 +326,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
     def _query_tickets(self, options):
         query_options = {}
         for key in options.keys():
-            if not key in self.options:
+            if key not in self.options:
                 query_options[key] = options[key]
 
         # The fields always needed by the Gantt
@@ -390,12 +393,12 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
                 # Add another level
                 wbs.append(1)
                 for c in childIDs:
-                    wbs = _setLevel(c, wbs, level+1)
+                    wbs = _setLevel(c, wbs, level + 1)
                 # Remove the level we added
                 wbs.pop()
 
             # Increment last element of wbs
-            wbs[len(wbs)-1] += 1
+            wbs[len(wbs) - 1] += 1
 
             return wbs
 
@@ -419,19 +422,16 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
 
         def _buildEnumMap(field):
             self.classMap = {}
-            db = self.env.get_db_cnx()
-            cursor = db.cursor()
-            cursor.execute("SELECT name," +
-                           db.cast('value', 'int') +
-                           " FROM enum WHERE type=%s", (field,))
-            for name, value in cursor:
-                self.classMap[name] = value
+            with self.env.db_query as db:
+                self.classMap = dict(db("""
+                        SELECT name,%s FROM enum WHERE type=%%s
+                        """ % db.cast('value', 'int'), (field,)))
 
         display = None
         colorBy = options['colorBy']
 
         # Build the map the first time we need it
-        if self.classMap == None:
+        if self.classMap is None:
             # Enums (TODO: what others should I list?)
             if options['colorBy'] in ['priority', 'severity']:
                 _buildEnumMap(colorBy)
@@ -444,12 +444,12 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
 
         # Add closed status for strike through
         if t['status'] == 'closed':
-            if display == None:
+            if display is None:
                 display = 'class=ticket-closed'
             else:
                 display += ' ticket-closed'
 
-        if display == None:
+        if display is None:
             display = '#ff7f3f'
         return display
 
@@ -482,7 +482,8 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
                     # Build the map the first time we use it
                     if self.user_map is None:
                         self.user_map = {}
-                        for username, name, email in self.env.get_known_users():
+                        for username, name, email in \
+                                self.env.get_known_users():
                             self.user_map[username] = name
                     # Map the user name
                     if self.user_map.get(owner_name):
@@ -536,7 +537,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
 
         # pParent (parent task ID)
         # If there's no parent, don't link to it
-        if self.pm.parent(ticket) == None:
+        if self.pm.parent(ticket) is None:
             task += '%s,' % 0
         else:
             task += '%s,' % self.pm.parent(ticket)
@@ -565,7 +566,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
                                   javascript_quote(ticket['status']),
                                   javascript_quote(ticket['type']))
         task += ');\n'
-        task += self.GanttID+'.AddTaskItem(t);\n'
+        task += self.GanttID + '.AddTaskItem(t);\n'
         return task
 
     def _filter_tickets(self, options, tickets):
@@ -585,7 +586,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
                 parts = f.split(':')
                 # Just one part, it's a value for the previous field
                 if len(parts) == 1:
-                    if field == None:
+                    if field is None:
                         raise TracError(('display option error in "%s".' +
                                          ' Should be "display=f1:v1|f2:v2"' +
                                          ' or "display=f:v1|v2".') %
@@ -671,7 +672,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
 
         # Do the sort by each field
         for field in sortFields:
-            tickets.sort(key=itemgetter(field))
+            tickets.sort(key=operator.itemgetter(field))
 
         return tickets
 
@@ -745,7 +746,7 @@ All other macro arguments are treated as TracQuery specification (e.g., mileston
         options = self._parse_options(content)
 
         # Surely we can't create two charts in one microsecond.
-        self.GanttID = 'g_'+str(to_utimestamp(datetime.now(localtz)))
+        self.GanttID = 'g_%s' % to_utimestamp(datetime.datetime.now(localtz))
         chart = ''
         tasks = self._add_tasks(options)
         if len(tasks) == 0:
