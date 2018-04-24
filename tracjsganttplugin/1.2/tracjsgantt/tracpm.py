@@ -335,8 +335,12 @@ class TracPM(Component):
     # Return True if ticket has a non-empty value for field, False
     # otherwise.
     def isSet(self, ticket, field):
-        if self.isCfg(field) \
-                and len(ticket[self.fields[field]]) != 0:
+        if self.isCfg(field) and \
+                isinstance(ticket[self.fields[field]], datetime) and \
+                len(str(ticket[self.fields[field]])) != 0:
+            return True
+        elif self.isCfg(field) and \
+                len(ticket[self.fields[field]]) != 0:
             return True
         else:
             return False
@@ -348,8 +352,11 @@ class TracPM(Component):
         if not dateString:
             d = None
         else:
-            d = datetime(*time.strptime(dateString,
-                                        self.dbDateFormat)[0:7])
+            if isinstance(dateString, datetime):
+                d = dateString
+            else:
+                d = datetime(*time.strptime(dateString,
+                                            self.dbDateFormat)[0:7])
             d = d.replace(hour=0, minute=0, second=0, microsecond=0,
                           tzinfo=localtz)
         return d
