@@ -337,6 +337,7 @@ class TracPM(Component):
     def isSet(self, ticket, field):
         if self.isCfg(field) and \
                 isinstance(ticket[self.fields[field]], datetime) and \
+                ticket[self.fields[field]] is not None and \
                 len(str(ticket[self.fields[field]])) != 0:
             return True
         elif self.isCfg(field) and \
