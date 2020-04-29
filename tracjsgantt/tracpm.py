@@ -1109,53 +1109,54 @@ class TracPM(Component):
                                         if tid in ids]
 
         # Fill in relations
-        with self.env.db_query as db:
-            cursor = db.cursor()
+        if ids:
+            with self.env.db_query as db:
+                cursor = db.cursor()
 
-            # For each configured relation ...
-            for r in self.relations:
-                # Get the elements of the relationship ...
-                (f1, f2, tbl, src, dst) = self.relations[r]
-                # ... query all relations with the desired IDs on either end.
-                # See explanation in _followLink()
-                inClause = "IN (%s)" % ','.join(('%s',) * len(ids))
-                # Use AND, not OR, here so we only get links between the
-                # tickets were care about and don't create dangling
-                # references.
-                cursor.execute("SELECT %s, %s FROM %s " % (src, dst, tbl) +
-                               "WHERE %s " % src + inClause +
-                               " AND %s " % dst + inClause,
-                               ids + ids)
+                # For each configured relation ...
+                for r in self.relations:
+                    # Get the elements of the relationship ...
+                    f1, f2, tbl, src, dst = self.relations[r]
+                    # ... query all relations with desired IDs on either end.
+                    # See explanation in _followLink()
+                    inClause = "IN (%s)" % ','.join(('%s',) * len(ids))
+                    # Use AND, not OR, here so we only get links between the
+                    # tickets were care about and don't create dangling
+                    # references.
+                    cursor.execute("SELECT %s, %s FROM %s " % (src, dst, tbl) +
+                                   "WHERE %s " % src + inClause +
+                                   " AND %s " % dst + inClause,
+                                   ids + ids)
 
-                # ... quickly build a local cache of the forward and
-                # reverse links (where both ends are in the list we care
-                # about) ...
-                fwd = {}
-                rev = {}
-                for row in cursor:
-                    # FIXME - this masks src, dst field names above.
-                    (src, dst) = row
+                    # ... quickly build a local cache of the forward and
+                    # reverse links (where both ends are in the list we care
+                    # about) ...
+                    fwd = {}
+                    rev = {}
+                    for row in cursor:
+                        # FIXME - this masks src, dst field names above.
+                        (src, dst) = row
 
-                    if dst in fwd:
-                        fwd[dst].append(src)
-                    else:
-                        fwd[dst] = [src]
+                        if dst in fwd:
+                            fwd[dst].append(src)
+                        else:
+                            fwd[dst] = [src]
 
-                    if src in rev:
-                        rev[src].append(dst)
-                    else:
-                        rev[src] = [dst]
+                        if src in rev:
+                            rev[src].append(dst)
+                        else:
+                            rev[src] = [dst]
 
-                # ... and put the links in the tickets.
-                for t in tickets:
-                    if t['id'] in fwd:
-                        t[f1] = fwd[t['id']]
-                    else:
-                        t[f1] = []
-                    if t['id'] in rev:
-                        t[f2] = rev[t['id']]
-                    else:
-                        t[f2] = []
+                    # ... and put the links in the tickets.
+                    for t in tickets:
+                        if t['id'] in fwd:
+                            t[f1] = fwd[t['id']]
+                        else:
+                            t[f1] = []
+                        if t['id'] in rev:
+                            t[f2] = rev[t['id']]
+                        else:
+                            t[f2] = []
 
         # Get precomputed schedule, close dates, etc.
         self.getTicketDates(tickets)
