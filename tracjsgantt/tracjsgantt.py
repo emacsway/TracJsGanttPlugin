@@ -102,7 +102,7 @@ class TracJSGanttSupport(Component):
     Option('trac-jsgantt', 'option.scrollTo', None,
            """Date to scroll chart to (yyyy-mm--dd or 'today')""")
 
-    Option('trac-jsGantt', 'option.linkStyle', 'standard',
+    Option('trac-jsgantt', 'option.linkStyle', 'standard',
            """Style for ticket links; jsgantt (new window) or standard
            browser behavior like ticket links.
            """)
