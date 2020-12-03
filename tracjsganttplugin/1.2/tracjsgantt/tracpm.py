@@ -336,16 +336,7 @@ class TracPM(Component):
     # Return True if ticket has a non-empty value for field, False
     # otherwise.
     def isSet(self, ticket, field):
-        if self.isCfg(field) and \
-                isinstance(ticket[self.fields[field]], datetime) and \
-                ticket[self.fields[field]] is not None and \
-                len(str(ticket[self.fields[field]])) != 0:
-            return True
-        elif self.isCfg(field) and \
-                len(ticket[self.fields[field]]) != 0:
-            return True
-        else:
-            return False
+        return bool(self.isCfg(field) and ticket.get(self.fields[field]))
 
     # FIXME - Many of these should be marked as more private.  Perhaps
     # an leading underscore?
